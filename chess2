@@ -1,0 +1,106 @@
+import tkinter as tk
+import random
+from PIL import Image, ImageTk
+
+
+class ChessBoardApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Chess2")
+
+        self.canvas = tk.Canvas(root, width=400, height=400)
+        self.canvas.pack()
+
+        self.volume_label = tk.Label(root, text="Volume: 50%", font=("Arial", 15))
+        self.volume_label.pack()
+
+        self.current_volume = 50
+        self.clicked_squares = [[False for _ in range(8)] for _ in range(8)]
+        self.click_count = 0
+
+        self.create_chessboard()
+        self.add_labels()
+        self.load_images()
+        self.place_pieces()
+
+    def create_chessboard(self):
+        square_size = 50
+        for row in range(8):
+            for col in range(8):
+                x1 = col * square_size
+                y1 = row * square_size
+                x2 = x1 + square_size
+                y2 = y1 + square_size
+                if (row + col) % 2 == 0:
+                    square = self.canvas.create_rectangle(x1, y1, x2, y2, fill="#f2daa6")
+                else:
+                    square = self.canvas.create_rectangle(x1, y1, x2, y2, fill="#79553D")
+                self.canvas.tag_bind(square, '<Button-1>', lambda event, row, col: self.on_square_click(event, row, col))
+
+    def add_labels(self):
+        square_size = 50
+        letters = "abcdefgh"
+        for i in range(8):
+            self.canvas.create_text(5 + i * square_size, 393, text=letters[i])
+            self.canvas.create_text(393, 7 + i * square_size, text=str(8 - i))
+
+    def on_square_click(self, event, row, col):
+        if self.clicked_squares[row][col] or row in [0, 1, 6, 7]:
+            return
+
+        self.clicked_squares[row][col] = True
+        self.click_count += 1
+
+        number = random.randint(1, 15)
+        is_light = (row + col) % 2 == 0
+        if is_light:
+            text = f"- {number}"
+            self.current_volume -= number
+        else:
+            text = f"+ {number}"
+            self.current_volume += number
+
+        self.current_volume = max(0, min(100, self.current_volume))
+        self.canvas.create_text(col * 50 + 25, row * 50 + 25, text=text, font=("Arial", 12, "bold"))
+        self.volume_label.config(text=f"Volume: {self.current_volume}%")
+
+        if self.click_count == 32:
+            self.reset_board()
+
+    def reset_board(self):
+        self.canvas.delete("all")
+        self.clicked_squares = [[False for _ in range(8)] for _ in range(8)]
+        self.click_count = 0
+        self.current_volume = 50
+        self.volume_label.config(text="Volume: 50%")
+
+        self.create_chessboard()
+        self.add_labels()
+        self.place_pieces()
+
+    def load_images(self):
+        self.images = {}
+        pieces = ['pawn', 'rook', 'knight', 'bishop', 'queen', 'king']
+        colors = ['white', 'black']
+        for piece in pieces:
+            for color in colors:
+                image_path = f"images/{color}_{piece}.png"
+                image = Image.open(image_path)
+                image = image.resize((50, 50), Image.Resampling.LANCZOS)
+                self.images[f"{color}_{piece}"] = ImageTk.PhotoImage(image)
+
+    def place_pieces(self):
+        for col in range(8):
+            self.canvas.create_image(col * 50 + 25, 6 * 50 + 25, image=self.images['white_pawn'])
+            self.canvas.create_image(col * 50 + 25, 1 * 50 + 25, image=self.images['black_pawn'])
+
+        pieces_order = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook']
+        for col, piece in enumerate(pieces_order):
+            self.canvas.create_image(col * 50 + 25, 7 * 50 + 25, image=self.images[f'white_{piece}'])
+            self.canvas.create_image(col * 50 + 25, 0 * 50 + 25, image=self.images[f'black_{piece}'])
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ChessBoardApp(root)
+    root.mainloop()
